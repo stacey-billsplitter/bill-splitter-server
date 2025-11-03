@@ -35,9 +35,21 @@ app.post('/fetch-menu', async (req, res) => {
             }
         });
         
-        res.json({ success: true, items: menuItems });
+        // Remove duplicates
+        const unique = [];
+        const seen = new Set();
+        menuItems.forEach(item => {
+            const key = `${item.name}-${item.price}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(item);
+            }
+        });
+        
+        res.json({ success: true, items: unique });
     } catch (error) {
-        res.status(500).json({ success: false, error: 'Failed to fetch' });
+        console.error('Error:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch menu' });
     }
 });
 
@@ -47,25 +59,16 @@ app.get('/health', (req, res) => {
 
 function guessCategory(name) {
     const n = name.toLowerCase();
-    if (n.includes('starter')) return 'starter';
-    if (n.includes('drink')) return 'drink';
-    if (n.includes('dessert')) return 'dessert';
-    if (n.includes('kids')) return 'kids';
+    if (n.includes('starter') || n.includes('bread')) return 'starter';
+    if (n.includes('drink') || n.includes('wine') || n.includes('beer')) return 'drink';
+    if (n.includes('dessert') || n.includes('cake')) return 'dessert';
+    if (n.includes('kids') || n.includes('child')) return 'kids';
+    if (n.includes('side') || n.includes('chips') || n.includes('fries')) return 'side';
     return 'main';
 }
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Menu fetch server running on port ${PORT}`);
+    console.log(`Health check at: http://localhost:${PORT}/health`);
 });
-```
-
-4. Click **"Commit new file"**
-
-### **Step 3: Wait for Railway to Redeploy**
-Railway will automatically detect the change and redeploy (takes 1-2 minutes)
-
-### **Step 4: Check it's working**
-Once deployed, test this link:
-```
-https://bill-splitter-server-production.up.railway.app/health
