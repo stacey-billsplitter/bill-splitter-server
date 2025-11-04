@@ -67,8 +67,34 @@ function guessCategory(name) {
     return 'main';
 }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Menu fetch server running on port ${PORT}`);
     console.log(`Health check at: http://localhost:${PORT}/health`);
 });
+```
+
+The key change is adding `'0.0.0.0'` which tells the server to listen on all network interfaces, not just localhost.
+
+## 🚀 **Alternative Quick Fix in Railway:**
+
+If the above doesn't work, try this in Railway:
+
+1. Go to your Railway project
+2. Click **Variables** tab  
+3. Add a new variable:
+   - Name: `PORT`
+   - Value: `8080`
+4. Railway will redeploy
+
+## 🎯 **The Problem Explained:**
+
+Your server IS starting correctly ("Menu fetch server running on port 8080") but Railway can't reach it because:
+1. It's only listening on `localhost` instead of all interfaces
+2. Railway might be expecting a different port
+
+The `'0.0.0.0'` fix should solve this immediately.
+
+After you make this change and Railway redeploys (1-2 minutes), test:
+```
+https://bill-splitter-server-production.up.railway.app/health
