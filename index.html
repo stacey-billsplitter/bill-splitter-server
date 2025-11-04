@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magical Bill Splitter</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --purple-start: #667eea;
+            --purple-end: #764ba2;
+            --purple-mid: #6b6ee8;
+            --purple-dark: #4a4aa6;
+            --surface: rgba(255, 255, 255, 0.92);
+            --surface-strong: rgba(255, 255, 255, 0.98);
+            --text-primary: #212145;
+            --text-secondary: #4f4f78;
+            --text-muted: #6d6d94;
+            --success: #2ecc71;
+            --danger: #ff6b6b;
+            --warning: #f7b267;
+            --info: #5dade2;
+            --shadow-lg: 0 18px 45px rgba(102, 126, 234, 0.22);
+            --shadow-md: 0 12px 28px rgba(118, 75, 162, 0.18);
+            --shadow-sm: 0 6px 16px rgba(102, 126, 234, 0.12);
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --radius-sm: 12px;
+            --transition-fast: 180ms ease;
+            --transition-medium: 260ms cubic-bezier(0.16, 1, 0.3, 1);
+            --container-max: 1080px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, var(--purple-start), var(--purple-end));
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            padding: 32px 16px 48px;
+        }
+
+        .app-shell {
+            width: min(100%, var(--container-max));
+            background: var(--surface);
+            border-radius: 28px;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        header.app-header {
+            padding: 28px clamp(20px, 4vw, 42px) 24px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.85), rgba(118, 75, 162, 0.92));
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header.app-header::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.28), transparent 55%);
+            pointer-events: none;
+        }
+
+        .app-header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .app-title {
+            margin: 0;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .app-subtitle {
+            margin: 6px 0 0;
+            font-size: clamp(0.95rem, 2vw, 1.05rem);
+            opacity: 0.85;
+            max-width: 520px;
+        }
+
+        .progress-indicator {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 26px;
+        }
+
+        .progress-step {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.12);
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            transition: all var(--transition-medium);
+        }
+
+        .progress-step::before {
+            content: attr(data-step);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.24);
+            color: white;
+            font-weight: 600;
+            font-size: 0.82rem;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+        }
+
+        .progress-step.active {
+            background: rgba(255,255,255,0.32);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 22px rgba(0,0,0,0.15);
+        }
+
+        .progress-step.completed {
+            background: rgba(255,255,255,0.22);
+            color: white;
+        }
+
+        .progress-step.completed::before {
+            content: "✓";
+            background: rgba(255,255,255,0.36);
+            font-size: 0.9rem;
+        }
+
+        main.app-main {
+            padding: clamp(20px, 4vw, 48px);
+            position: relative;
+            min-height: 520px;
+        }
+
+        .screen {
+            display: none;
+            animation: fadeInUp var(--transition-medium);
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cards-grid {
+            display: grid;
+            gap: 18px;
+        }
+
+        .card {
+            background: var(--surface-strong);
+            border-radius: var(--radius-lg);
+            padding: clamp(16px, 2vw, 22px);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            transition: transform var(--transition-medium), box-shadow var(--transition-medium);
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .card-subtitle {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button.btn {
+            border: none;
+            border-radius: 999px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button.btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--purple-mid), var(--purple-dark));
+            color: white;
+            box-shadow: 0 8px 18px rgba(104, 118, 234, 0.35);
+        }
+
+        .btn.secondary {
+            background: rgba(118, 75, 162, 0.12);
+            color: var(--purple-dark);
+        }
+
+        .btn.ghost {
+            background: transparent;
+            color: var(--text-muted);
+            box-shadow: inset 0 0 0 1px rgba(118, 75, 162, 0.22);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, 0.14);
+            color: var(--danger);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #1abc9c, #2ecc71);
+            color: white;
+            box-shadow: 0 10px 22px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn.icon {
+            padding-inline: 16px;
+        }
+
+        .btn[disabled] {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-size: 0.95rem;
+            background: rgba(118, 75, 162, 0.08);
+            color: var(--text-primary);
+            transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.28);
+            transform: translateY(-1px);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .items-empty {
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            background: rgba(118, 75, 162, 0.08);
+            color: var(--text-secondary);
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .items-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.12);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            position: relative;
+        }
+
+        .item-main {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .item-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+
+        .item-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .item-price {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: var(--purple-dark);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .badge.category {
+            background: rgba(118, 75, 162, 0.12);
+            color: var(--purple-dark);
+        }
+
+        .badge.claimed {
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--success);
+        }
+
+        .badge.unclaimed {
+            background: rgba(255, 107, 107, 0.15);
+            color: var(--danger);
+        }
+
+        .claimed-names {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .claimed-chip {
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--success);
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .claimed-chip.missing {
+            background: rgba(255, 107, 107, 0.18);
+            color: var(--danger);
+        }
+
+        .item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .small-btn {
+            border: none;
+            background: rgba(102, 126, 234, 0.12);
+            color: var(--purple-dark);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background var(--transition-fast), transform var(--transition-fast);
+        }
+
+        .small-btn:hover {
+            background: rgba(118, 75, 162, 0.18);
+            transform: translateY(-2px);
+        }
+
+        .form-helper {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .summary-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.16));
+            padding: 18px 20px;
+            border-radius: var(--radius-lg);
+            margin-top: 6px;
+        }
+
+        .summary-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--purple-dark);
+        }
+
+        .people-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .person-chip {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--purple-dark);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background var(--transition-fast), transform var(--transition-fast), border var(--transition-fast);
+        }
+
+        .person-chip.active {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .person-chip .remove-person {
+            border: none;
+            background: rgba(0,0,0,0.08);
+            color: var(--danger);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+
+        .claimable-item {
+            border: 1px solid rgba(118, 75, 162, 0.16);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            transition: border var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .claimable-item.claimed-by-active {
+            border-color: rgba(46, 204, 113, 0.55);
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.18);
+        }
+
+        .claimable-item.unclaimed {
+            border-color: rgba(255, 107, 107, 0.4);
+        }
+
+        .claimable-item button {
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .claim-btn {
+            background: rgba(102, 126, 234, 0.12);
+            color: var(--purple-dark);
+        }
+
+        .claim-btn.claimed {
+            background: rgba(46, 204, 113, 0.18);
+            color: var(--success);
+        }
+
+        .section-divider {
+            display: block;
+            height: 1px;
+            background: rgba(102, 126, 234, 0.15);
+            margin: 8px 0;
+        }
+
+        .discount-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .discount-types {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .discount-type {
+            flex: 1 1 160px;
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(102, 126, 234, 0.18);
+            background: rgba(118, 75, 162, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: transform var(--transition-fast), border var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .discount-type.active {
+            border-color: rgba(102, 126, 234, 0.55);
+            background: rgba(102, 126, 234, 0.15);
+            box-shadow: 0 8px 18px rgba(102, 126, 234, 0.2);
+        }
+
+        .pill-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pill {
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(118, 75, 162, 0.08);
+            color: var(--purple-dark);
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all var(--transition-fast);
+        }
+
+        .pill.selected {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+
+        .discount-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .discount-card {
+            padding: 16px;
+            border-radius: var(--radius-md);
+            background: white;
+            border: 1px solid rgba(102, 126, 234, 0.18);
+            box-shadow: 0 12px 20px rgba(102, 126, 234, 0.12);
+            display: grid;
+            gap: 10px;
+        }
+
+        .discount-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .discount-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .discount-label {
+            font-weight: 600;
+            color: var(--purple-dark);
+        }
+
+        .people-summary {
+            display: grid;
+            gap: 14px;
+        }
+
+        .person-summary-card {
+            display: grid;
+            gap: 12px;
+            padding: 18px;
+            border-radius: var(--radius-md);
+            background: white;
+            border: 1px solid rgba(102, 126, 234, 0.14);
+            box-shadow: 0 10px 18px rgba(102, 126, 234, 0.1);
+        }
+
+        .person-summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .person-summary-name {
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+
+        .person-summary-total {
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--purple-dark);
+        }
+
+        .summary-breakdown {
+            display: grid;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .service-charge-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            background: rgba(102, 126, 234, 0.12);
+        }
+
+        .switch {
+            position: relative;
+            width: 56px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: rgba(118, 75, 162, 0.35);
+            transition: var(--transition-medium);
+            border-radius: 999px;
+        }
+
+        .slider::before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 3px;
+            background-color: white;
+            transition: var(--transition-medium);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.24);
+        }
+
+        .switch input:checked + .slider {
+            background: linear-gradient(135deg, #1abc9c, #2ecc71);
+        }
+
+        .switch input:checked + .slider::before {
+            transform: translateX(26px);
+        }
+
+        .grand-total-card {
+            padding: 20px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.16), rgba(118, 75, 162, 0.22));
+            display: grid;
+            gap: 12px;
+            color: var(--purple-dark);
+        }
+
+        .grand-total-value {
+            font-size: clamp(1.4rem, 4vw, 1.9rem);
+            font-weight: 800;
+        }
+
+        .unclaimed-list {
+            display: grid;
+            gap: 10px;
+            padding: 16px;
+            background: rgba(255, 107, 107, 0.12);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            gap: 12px;
+            z-index: 40;
+        }
+
+        .toast {
+            background: rgba(32, 32, 56, 0.92);
+            color: white;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeInUp var(--transition-medium);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+            background: rgba(27, 27, 51, 0.45);
+            backdrop-filter: blur(6px);
+            z-index: 50;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            width: min(680px, 100%);
+            background: var(--surface-strong);
+            border-radius: 24px;
+            padding: clamp(20px, 3vw, 28px);
+            box-shadow: 0 24px 50px rgba(14, 24, 48, 0.26);
+            display: grid;
+            gap: 18px;
+            position: relative;
+        }
+
+        .modal h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            border: none;
+            background: rgba(118, 75, 162, 0.12);
+            color: var(--purple-dark);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .modal-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-radius: var(--radius-md);
+            background: rgba(118, 75, 162, 0.12);
+            padding: 6px;
+        }
+
+        .modal-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            cursor: pointer;
+            transition: background var(--transition-fast), color var(--transition-fast);
+        }
+
+        .modal-tab.active {
+            background: white;
+            color: var(--purple-dark);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .modal-section {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-section.active {
+            display: flex;
+        }
+
+        .checklist {
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(102, 126, 234, 0.18);
+            background: rgba(102, 126, 234, 0.05);
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+            max-height: 320px;
+            overflow: auto;
+        }
+
+        .checklist-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .checklist-heading {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--purple-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            background: white;
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.08);
+            gap: 12px;
+        }
+
+        .checklist-item label {
+            flex: 1;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .checklist-item span {
+            font-weight: 600;
+            color: var(--purple-dark);
+        }
+
+        .fetch-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .loading-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--purple-dark);
+            animation: pulse 1s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.2; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        .dialog-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+            background: rgba(17, 17, 36, 0.48);
+            backdrop-filter: blur(6px);
+            z-index: 60;
+        }
+
+        .dialog-overlay.open {
+            display: flex;
+        }
+
+        .dialog {
+            width: min(420px, 100%);
+            background: white;
+            border-radius: 22px;
+            padding: 24px 26px;
+            box-shadow: 0 28px 48px rgba(17, 17, 36, 0.28);
+            display: grid;
+            gap: 16px;
+            animation: fadeInUp var(--transition-medium);
+        }
+
+        .dialog h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--purple-dark);
+        }
+
+        .dialog p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .floating-instructions {
+            background: rgba(255, 255, 255, 0.32);
+            border-radius: 18px;
+            padding: 12px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+        }
+
+        .step-footer {
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .instruction-card {
+            background: rgba(102, 126, 234, 0.08);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(102, 126, 234, 0.14);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--purple-dark);
+        }
+
+        .mini-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .muted {
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 18px 12px 32px;
+            }
+
+            .app-shell {
+                border-radius: 22px;
+            }
+
+            header.app-header {
+                padding: 24px 22px 20px;
+            }
+
+            .progress-indicator {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            main.app-main {
+                padding: 22px;
+            }
+
+            .item-card {
+                grid-template-columns: 1fr;
+            }
+
+            .modal {
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .progress-indicator {
+                grid-template-columns: repeat(1, minmax(0, 1fr));
+            }
+
+            .btn-row {
+                flex-direction: column;
+            }
+
+            .step-footer {
+                flex-direction: column-reverse;
+                align-items: stretch;
+            }
+
+            button.btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .people-summary {
+                gap: 16px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell" id="app">
+        <header class="app-header">
+            <div class="floating-instructions">✨ Pass the phone around — everyone taps what they ate!</div>
+            <div class="app-header-content">
+                <h1 class="app-title">Magical Bill Splitter</h1>
+                <p class="app-subtitle">Import a restaurant menu in seconds, let everyone claim their dishes, apply deals, and see the perfect split.</p>
+                <div class="progress-indicator" id="progress-indicator">
+                    <div class="progress-step" data-step="1">Add Items</div>
+                    <div class="progress-step" data-step="2">Claim Items</div>
+                    <div class="progress-step" data-step="3">Apply Discounts</div>
+                    <div class="progress-step" data-step="4">Final Split</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="screen" data-screen="1" id="screen-add-items">
+                <div class="cards-grid">
+                    <article class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Import or Add Bill Items</h2>
+                            <span class="card-subtitle">Load a menu, then tweak anything manually.</span>
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn success" id="btn-import-menu">Import Restaurant Menu</button>
+                            <button class="btn secondary" id="btn-show-preset">Browse preset menus</button>
+                        </div>
+                        <div class="summary-bar">
+                            <div>
+                                <div class="mini-label">Running total</div>
+                                <div class="summary-value" id="running-total">£0.00</div>
+                            </div>
+                            <div>
+                                <div class="mini-label">Items</div>
+                                <div class="summary-value" id="item-count">0</div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Add item manually</h3>
+                                <span class="card-subtitle">We auto-detect the category for you.</span>
+                            </div>
+                            <form id="manual-add-form">
+                                <div class="input-row">
+                                    <div class="form-field">
+                                        <label for="item-name">Item name</label>
+                                        <input type="text" id="item-name" name="itemName" placeholder="e.g. Truffle Pasta" required autocomplete="off">
+                                    </div>
+                                    <div class="form-field">
+                                        <label for="item-price">Price (£)</label>
+                                        <input type="number" id="item-price" name="itemPrice" min="0" step="0.01" placeholder="14.50" required>
+                                    </div>
+                                    <div class="form-field">
+                                        <label for="item-category">Category</label>
+                                        <select id="item-category" name="itemCategory">
+                                            <option value="auto">Auto detect</option>
+                                            <option value="starter">Starter</option>
+                                            <option value="main">Main</option>
+                                            <option value="drink">Drink</option>
+                                            <option value="dessert">Dessert</option>
+                                            <option value="kids">Kids</option>
+                                            <option value="side">Side</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="btn-row" style="margin-top: 14px;">
+                                    <button type="submit" class="btn primary">Add to bill</button>
+                                </div>
+                            </form>
+                        </div>
+                        <section>
+                            <div class="card-header">
+                                <h3 class="card-title">Items in this bill</h3>
+                                <span class="card-subtitle" id="items-subtitle">No items yet</span>
+                            </div>
+                            <div class="items-list" id="items-list"></div>
+                        </section>
+                        <div class="step-footer">
+                            <button class="btn ghost" id="btn-clear-items">Clear all items</button>
+                            <button class="btn primary" id="btn-to-claims">Next: Claim items</button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="screen" data-screen="2" id="screen-claim-items">
+                <div class="cards-grid">
+                    <article class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Who had what?</h2>
+                            <span class="card-subtitle">Tap an item to claim it. Shared dishes split automatically.</span>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Add people</h3>
+                                <span class="card-subtitle">Everyone should appear here before claiming items.</span>
+                            </div>
+                            <form id="add-person-form">
+                                <div class="input-row">
+                                    <div class="form-field" style="flex:2">
+                                        <label for="person-name">Person name</label>
+                                        <input type="text" id="person-name" name="personName" placeholder="e.g. Priya" autocomplete="off" required>
+                                    </div>
+                                    <div class="form-field" style="flex:1; align-self:flex-end;">
+                                        <button type="submit" class="btn primary">Add person</button>
+                                    </div>
+                                </div>
+                            </form>
+                            <div class="people-chips" id="people-list"></div>
+                        </div>
+                        <section>
+                            <div class="instruction-card">Select someone, then tap each dish they had. We’ll highlight claimed dishes in green.</div>
+                            <div class="items-list" id="claimable-items"></div>
+                        </section>
+                        <div class="card" id="claim-summary-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Item summary</h3>
+                                <span class="card-subtitle" id="claim-summary-subtitle">Select someone to see their dishes.</span>
+                            </div>
+                            <div id="claim-summary-body" class="summary-breakdown"></div>
+                        </div>
+                        <div class="step-footer">
+                            <button class="btn ghost" id="btn-back-to-items">Back to items</button>
+                            <button class="btn primary" id="btn-to-discounts">Next: Apply discounts</button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="screen" data-screen="3" id="screen-discounts">
+                <div class="cards-grid">
+                    <article class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Deals, discounts & vouchers</h2>
+                            <span class="card-subtitle">We’ll distribute savings fairly across everyone involved.</span>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Add a discount</h3>
+                                <span class="card-subtitle">Pick a type, choose who it applies to, and we’ll handle the math.</span>
+                            </div>
+                            <div class="discount-form" id="discount-form">
+                                <div class="discount-types">
+                                    <div class="discount-type" data-type="percent">
+                                        <strong>Percentage off</strong>
+                                        <span class="muted">Example: 25% off for everyone at the table.</span>
+                                    </div>
+                                    <div class="discount-type" data-type="twoForOne">
+                                        <strong>2-for-1 deal</strong>
+                                        <span class="muted">Select qualifying dishes — cheapest ones become free.</span>
+                                    </div>
+                                    <div class="discount-type" data-type="custom">
+                                        <strong>Custom amount</strong>
+                                        <span class="muted">Enter any amount, like £10 off for drinks.</span>
+                                    </div>
+                                </div>
+                                <div id="discount-config"></div>
+                            </div>
+                        </div>
+                        <section>
+                            <div class="card-header">
+                                <h3 class="card-title">Active deals</h3>
+                                <span class="card-subtitle" id="discounts-subtitle">No discounts yet.</span>
+                            </div>
+                            <div class="discount-list" id="discount-list"></div>
+                        </section>
+                        <div class="step-footer">
+                            <button class="btn ghost" id="btn-back-to-claims">Back to claims</button>
+                            <button class="btn primary" id="btn-to-summary">Next: Final split</button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="screen" data-screen="4" id="screen-summary">
+                <div class="cards-grid">
+                    <article class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">All settled!</h2>
+                            <span class="card-subtitle">Review the final amounts and make tweaks if needed.</span>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Service charge</h3>
+                                <span class="card-subtitle">Apply a venue service charge across everyone.</span>
+                            </div>
+                            <div class="service-charge-toggle">
+                                <div>
+                                    <div class="mini-label">Service charge (%)</div>
+                                    <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+                                        <input type="number" id="service-charge-input" min="0" max="40" step="0.5" style="width:90px;" />
+                                        <span class="muted">Evenly applied to each person’s subtotal.</span>
+                                    </div>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="service-charge-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <section>
+                            <div class="card-header">
+                                <h3 class="card-title">Per person breakdown</h3>
+                                <span class="card-subtitle">Includes shared items, discounts, and service charge.</span>
+                            </div>
+                            <div class="people-summary" id="people-summary"></div>
+                        </section>
+                        <section>
+                            <div class="card-header">
+                                <h3 class="card-title">Unclaimed items</h3>
+                                <span class="card-subtitle">Make sure everything’s assigned before paying.</span>
+                            </div>
+                            <div id="unclaimed-section"></div>
+                        </section>
+                        <div class="grand-total-card">
+                            <div class="mini-label">Group total</div>
+                            <div class="grand-total-value" id="grand-total">£0.00</div>
+                            <div class="muted" id="grand-total-breakdown"></div>
+                        </div>
+                        <div class="step-footer">
+                            <button class="btn ghost" id="btn-back-to-discounts">Back to discounts</button>
+                            <button class="btn primary" id="btn-reset">Start over</button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="menu-modal">
+        <div class="modal">
+            <button class="modal-close" id="menu-modal-close" aria-label="Close menu import">✕</button>
+            <h2>Import restaurant menu</h2>
+            <p class="muted">Type a restaurant URL, pick from popular presets, or paste a menu. Select the dishes you want and we’ll add them to your bill.</p>
+            <div class="modal-tabs">
+                <button class="modal-tab active" data-tab="url">Magic URL import</button>
+                <button class="modal-tab" data-tab="preset">Preset menu</button>
+                <button class="modal-tab" data-tab="paste">Paste text</button>
+            </div>
+            <div class="modal-section active" data-content="url">
+                <div class="form-field">
+                    <label for="menu-url-input">Restaurant website URL</label>
+                    <input type="text" id="menu-url-input" placeholder="https://example.com/menu" autocomplete="off">
+                    <span class="form-helper">We’ll fetch the menu and auto-categorize dishes for you.</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn success" id="btn-fetch-menu">Fetch menu</button>
+                </div>
+                <div id="fetch-status" class="fetch-status hidden"></div>
+                <div class="checklist hidden" id="menu-checklist"></div>
+                <div class="btn-row" id="menu-add-row" style="display:none;">
+                    <button class="btn primary" id="btn-add-selected">Add selected items</button>
+                </div>
+            </div>
+            <div class="modal-section" data-content="preset">
+                <p class="muted">Tap any items to select them. Mix and match before adding.</p>
+                <div class="checklist" id="preset-checklist"></div>
+                <div class="btn-row">
+                    <button class="btn primary" id="btn-add-preset">Add selected preset items</button>
+                </div>
+            </div>
+            <div class="modal-section" data-content="paste">
+                <div class="form-field">
+                    <label for="menu-text-input">Paste menu text</label>
+                    <textarea id="menu-text-input" placeholder="Margherita Pizza £9.95\nHouse Red £6.50"></textarea>
+                    <span class="form-helper">Each item on a new line. Include the price with a £ sign.</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" id="btn-parse-text">Preview items</button>
+                </div>
+                <div class="checklist hidden" id="parsed-checklist"></div>
+                <div class="btn-row" id="parsed-add-row" style="display:none;">
+                    <button class="btn primary" id="btn-add-parsed">Add selected items</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dialog-overlay" id="dialog-overlay" role="dialog" aria-modal="true"></div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        (() => {
+            const STORAGE_KEY = 'billSplitterStateV1';
+            const DEFAULT_SERVICE_CHARGE = 12.5;
+            const deepClone = (value) => JSON.parse(JSON.stringify(value));
+
+            const selectors = {
+                screens: document.querySelectorAll('.screen'),
+                progressSteps: document.querySelectorAll('.progress-step'),
+                runningTotal: document.getElementById('running-total'),
+                itemCount: document.getElementById('item-count'),
+                itemsList: document.getElementById('items-list'),
+                manualAddForm: document.getElementById('manual-add-form'),
+                btnClearItems: document.getElementById('btn-clear-items'),
+                btnToClaims: document.getElementById('btn-to-claims'),
+                btnImportMenu: document.getElementById('btn-import-menu'),
+                btnShowPreset: document.getElementById('btn-show-preset'),
+                itemsSubtitle: document.getElementById('items-subtitle'),
+                btnBackToItems: document.getElementById('btn-back-to-items'),
+                btnToDiscounts: document.getElementById('btn-to-discounts'),
+                addPersonForm: document.getElementById('add-person-form'),
+                peopleList: document.getElementById('people-list'),
+                claimableItems: document.getElementById('claimable-items'),
+                claimSummaryBody: document.getElementById('claim-summary-body'),
+                claimSummarySubtitle: document.getElementById('claim-summary-subtitle'),
+                btnBackToClaims: document.getElementById('btn-back-to-claims'),
+                btnToSummary: document.getElementById('btn-to-summary'),
+                discountList: document.getElementById('discount-list'),
+                discountsSubtitle: document.getElementById('discounts-subtitle'),
+                discountForm: document.getElementById('discount-form'),
+                discountConfig: document.getElementById('discount-config'),
+                serviceChargeInput: document.getElementById('service-charge-input'),
+                serviceChargeToggle: document.getElementById('service-charge-toggle'),
+                peopleSummary: document.getElementById('people-summary'),
+                unclaimedSection: document.getElementById('unclaimed-section'),
+                grandTotal: document.getElementById('grand-total'),
+                grandTotalBreakdown: document.getElementById('grand-total-breakdown'),
+                btnBackToDiscounts: document.getElementById('btn-back-to-discounts'),
+                btnReset: document.getElementById('btn-reset'),
+                menuModal: document.getElementById('menu-modal'),
+                menuModalClose: document.getElementById('menu-modal-close'),
+                menuTabs: document.querySelectorAll('.modal-tab'),
+                menuSections: document.querySelectorAll('.modal-section'),
+                menuUrlInput: document.getElementById('menu-url-input'),
+                btnFetchMenu: document.getElementById('btn-fetch-menu'),
+                fetchStatus: document.getElementById('fetch-status'),
+                menuChecklist: document.getElementById('menu-checklist'),
+                menuAddRow: document.getElementById('menu-add-row'),
+                btnAddSelected: document.getElementById('btn-add-selected'),
+                presetChecklist: document.getElementById('preset-checklist'),
+                btnAddPreset: document.getElementById('btn-add-preset'),
+                menuTextInput: document.getElementById('menu-text-input'),
+                btnParseText: document.getElementById('btn-parse-text'),
+                parsedChecklist: document.getElementById('parsed-checklist'),
+                parsedAddRow: document.getElementById('parsed-add-row'),
+                btnAddParsed: document.getElementById('btn-add-parsed'),
+                toastContainer: document.getElementById('toast-container'),
+                dialogOverlay: document.getElementById('dialog-overlay')
+            };
+
+            const presetMenus = [
+                {
+                    name: 'Italian Classics',
+                    items: [
+                        { name: 'Garlic Bread', price: 4.5, category: 'starter' },
+                        { name: 'Caprese Salad', price: 7.5, category: 'starter' },
+                        { name: 'Margherita Pizza', price: 10.5, category: 'main' },
+                        { name: 'Tagliatelle Carbonara', price: 13.5, category: 'main' },
+                        { name: 'Tiramisu', price: 6.5, category: 'dessert' },
+                        { name: 'House Red Wine (175ml)', price: 5.5, category: 'drink' }
+                    ]
+                },
+                {
+                    name: 'Brunch Favourites',
+                    items: [
+                        { name: 'Avocado Toast', price: 8.5, category: 'main' },
+                        { name: 'Eggs Benedict', price: 9.5, category: 'main' },
+                        { name: 'Buttermilk Pancakes', price: 8.0, category: 'main' },
+                        { name: 'Fresh Orange Juice', price: 4.0, category: 'drink' },
+                        { name: 'Flat White', price: 3.2, category: 'drink' }
+                    ]
+                },
+                {
+                    name: 'Pub Night',
+                    items: [
+                        { name: 'Loaded Nachos', price: 9.0, category: 'starter' },
+                        { name: 'Fish & Chips', price: 12.0, category: 'main' },
+                        { name: 'Beef Burger', price: 11.5, category: 'main' },
+                        { name: 'Onion Rings', price: 4.0, category: 'side' },
+                        { name: 'Pint of Lager', price: 5.2, category: 'drink' },
+                        { name: 'House Cider', price: 5.0, category: 'drink' }
+                    ]
+                }
+            ];
+
+            const initialState = {
+                currentStep: 1,
+                items: [],
+                people: [],
+                discounts: [],
+                serviceChargePercent: DEFAULT_SERVICE_CHARGE,
+                serviceChargeEnabled: true,
+                metadata: {
+                    activePersonId: null,
+                    lastMenuItems: []
+                }
+            };
+
+            let state = loadState();
+
+            function loadState() {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    if (!stored) return deepClone(initialState);
+                    const parsed = JSON.parse(stored);
+                    return {
+                        ...deepClone(initialState),
+                        ...parsed,
+                        metadata: {
+                            ...deepClone(initialState.metadata),
+                            ...(parsed.metadata || {})
+                        }
+                    };
+                } catch (error) {
+                    console.error('Failed to load saved state', error);
+                    return deepClone(initialState);
+                }
+            }
+
+            function saveState() {
+                const { metadata, ...rest } = state;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...rest, metadata }));
+            }
+
+            function setState(patch) {
+                state = {
+                    ...state,
+                    ...patch,
+                    metadata: {
+                        ...state.metadata,
+                        ...(patch.metadata || {})
+                    }
+                };
+                saveState();
+                render();
+            }
+
+            function showToast(message, options = {}) {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.textContent = message;
+                selectors.toastContainer.appendChild(toast);
+                const duration = options.duration || 3000;
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(6px)';
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+
+            function showDialog({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', tone = 'primary' }) {
+                return new Promise((resolve) => {
+                    const overlay = selectors.dialogOverlay;
+                    overlay.innerHTML = '';
+                    const dialog = document.createElement('div');
+                    dialog.className = 'dialog';
+                    dialog.innerHTML = `
+                        <h3>${title}</h3>
+                        <p>${message}</p>
+                        <div class="dialog-actions">
+                            <button class="btn ghost" data-action="cancel">${cancelText}</button>
+                            <button class="btn ${tone === 'danger' ? 'danger' : 'primary'}" data-action="confirm">${confirmText}</button>
+                        </div>
+                    `;
+                    overlay.appendChild(dialog);
+                    overlay.classList.add('open');
+
+                    function cleanup(result) {
+                        overlay.classList.remove('open');
+                        setTimeout(() => {
+                            overlay.innerHTML = '';
+                            resolve(result);
+                        }, 200);
+                    }
+
+                    overlay.addEventListener('click', (event) => {
+                        if (event.target === overlay) {
+                            cleanup(false);
+                        }
+                    }, { once: true });
+
+                    dialog.querySelector('[data-action="cancel"]').addEventListener('click', () => cleanup(false), { once: true });
+                    dialog.querySelector('[data-action="confirm"]').addEventListener('click', () => cleanup(true), { once: true });
+                });
+            }
+
+            function detectCategory(name = '') {
+                const n = name.toLowerCase();
+                if (!n) return 'main';
+                const matches = [
+                    { keywords: ['starter', 'soup', 'bread', 'prawn', 'calamari', 'dip'], category: 'starter' },
+                    { keywords: ['dessert', 'cake', 'pudding', 'ice cream', 'brownie', 'tart'], category: 'dessert' },
+                    { keywords: ['kid', 'child', 'junior', 'little'], category: 'kids' },
+                    { keywords: ['side', 'chips', 'fries', 'mash', 'salad', 'rice'], category: 'side' },
+                    { keywords: ['wine', 'beer', 'ale', 'lager', 'cocktail', 'juice', 'coffee', 'tea', 'drink'], category: 'drink' }
+                ];
+                for (const match of matches) {
+                    if (match.keywords.some(keyword => n.includes(keyword))) {
+                        return match.category;
+                    }
+                }
+                return 'main';
+            }
+
+            function formatCurrency(value) {
+                if (Number.isNaN(value) || value === undefined) return '£0.00';
+                const absolute = Math.abs(value).toFixed(2);
+                return `${value < 0 ? '-' : ''}£${absolute}`;
+            }
+
+            function generateId(prefix) {
+                return `${prefix}-${Math.random().toString(36).slice(2, 9)}-${Date.now().toString(36)}`;
+            }
+
+            function groupItemsByCategory(items) {
+                return items.reduce((grouped, item) => {
+                    const key = item.category || 'uncategorised';
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(item);
+                    return grouped;
+                }, {});
+            }
+
+            function getPersonName(personId) {
+                const person = state.people.find(p => p.id === personId);
+                return person ? person.name : 'Unknown';
+            }
+
+            function calculateBill() {
+                const perPerson = new Map();
+                const unclaimedItems = [];
+                let itemsTotal = 0;
+
+                state.people.forEach(person => {
+                    perPerson.set(person.id, {
+                        name: person.name,
+                        itemsTotal: 0,
+                        discounts: 0,
+                        discountBreakdown: [],
+                        serviceCharge: 0,
+                        total: 0,
+                        sharedItems: []
+                    });
+                });
+
+                state.items.forEach(item => {
+                    itemsTotal += item.price;
+                    const claimants = item.claimedBy || [];
+                    if (!claimants.length) {
+                        unclaimedItems.push(item);
+                        return;
+                    }
+                    const share = item.price / claimants.length;
+                    claimants.forEach(personId => {
+                        const person = perPerson.get(personId);
+                        if (person) {
+                            person.itemsTotal += share;
+                            person.sharedItems.push({ itemId: item.id, name: item.name, share });
+                        }
+                    });
+                });
+
+                const discountDistributions = state.discounts.map(discount => allocateDiscount(discount, perPerson));
+                discountDistributions.forEach(dist => {
+                    dist.appliedTo.forEach(entry => {
+                        const person = perPerson.get(entry.personId);
+                        if (person) {
+                            person.discounts += entry.amount;
+                            person.discountBreakdown.push({ description: dist.description, amount: entry.amount });
+                        }
+                    });
+                });
+
+                const servicePercent = state.serviceChargeEnabled ? state.serviceChargePercent : 0;
+
+                perPerson.forEach(person => {
+                    const subtotal = Math.max(person.itemsTotal + person.discounts, 0);
+                    const serviceCharge = subtotal * (servicePercent / 100);
+                    person.serviceCharge = serviceCharge;
+                    person.total = subtotal + serviceCharge;
+                });
+
+                const grandTotal = Array.from(perPerson.values()).reduce((sum, person) => sum + person.total, 0);
+                const discountsTotal = Array.from(perPerson.values()).reduce((sum, person) => sum + person.discounts, 0);
+                const serviceChargeTotal = Array.from(perPerson.values()).reduce((sum, person) => sum + person.serviceCharge, 0);
+
+                return {
+                    perPerson,
+                    unclaimedItems,
+                    itemsTotal,
+                    discountsTotal,
+                    serviceChargeTotal,
+                    grandTotal
+                };
+            }
+
+            function allocateDiscount(discount, perPerson) {
+                const appliedTo = [];
+                const appliedPersonIds = discount.appliedTo === 'all' ? state.people.map(p => p.id) : discount.appliedTo;
+                const peopleEntries = appliedPersonIds
+                    .map(id => ({ id, record: perPerson.get(id) }))
+                    .filter(entry => entry.record);
+
+                if (!peopleEntries.length) {
+                    return { description: discount.description, appliedTo: [] };
+                }
+
+                if (discount.type === 'percent') {
+                    const percent = discount.meta.percent;
+                    const totalBase = peopleEntries.reduce((sum, { record }) => sum + record.itemsTotal, 0);
+                    if (!totalBase) {
+                        return { description: discount.description, appliedTo: [] };
+                    }
+                    peopleEntries.forEach(({ id, record }) => {
+                        const amount = -1 * record.itemsTotal * (percent / 100);
+                        appliedTo.push({ personId: id, amount });
+                    });
+                } else if (discount.type === 'twoForOne') {
+                    const { itemIds } = discount.meta;
+                    const eligibleItems = state.items.filter(item => itemIds.includes(item.id));
+                    const sortedByPrice = [...eligibleItems].sort((a, b) => a.price - b.price);
+                    const freebies = sortedByPrice.slice(0, Math.floor(sortedByPrice.length / 2));
+                    freebies.forEach(freeItem => {
+                        const claimants = freeItem.claimedBy || [];
+                        if (!claimants.length) return;
+                        const share = freeItem.price / claimants.length;
+                        claimants.forEach(personId => {
+                            if (!appliedPersonIds.includes(personId)) return;
+                            appliedTo.push({ personId, amount: -share });
+                        });
+                    });
+                } else if (discount.type === 'custom') {
+                    const amount = discount.meta.amount;
+                    const split = amount / peopleEntries.length;
+                    peopleEntries.forEach(({ id }) => {
+                        appliedTo.push({ personId: id, amount: -split });
+                    });
+                }
+
+                return { description: discount.description, appliedTo };
+            }
+
+            function renderProgress() {
+                selectors.progressSteps.forEach(step => {
+                    const stepNumber = Number(step.dataset.step);
+                    step.classList.remove('active', 'completed');
+                    if (stepNumber === state.currentStep) {
+                        step.classList.add('active');
+                    } else if (stepNumber < state.currentStep) {
+                        step.classList.add('completed');
+                    }
+                });
+            }
+
+            function renderScreens() {
+                selectors.screens.forEach(screen => {
+                    const screenStep = Number(screen.dataset.screen);
+                    if (screenStep === state.currentStep) {
+                        screen.classList.add('active');
+                    } else {
+                        screen.classList.remove('active');
+                    }
+                });
+            }
+
+            function renderItemsScreen() {
+                const items = state.items;
+                const count = items.length;
+                const total = items.reduce((sum, item) => sum + item.price, 0);
+                selectors.runningTotal.textContent = formatCurrency(total);
+                selectors.itemCount.textContent = count;
+                selectors.itemsSubtitle.textContent = count ? `${count} item${count === 1 ? '' : 's'} added` : 'No items yet';
+
+                selectors.itemsList.innerHTML = '';
+                if (!count) {
+                    const empty = document.createElement('div');
+                    empty.className = 'items-empty';
+                    empty.textContent = 'Import a menu or add your first item to get started!';
+                    selectors.itemsList.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.innerHTML = `
+                        <div class="item-main">
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-meta">
+                                <span class="badge category">${item.category}</span>
+                                <span class="mini-label">${item.claimedBy.length ? 'Claimed' : 'Unclaimed'}</span>
+                            </div>
+                            <div class="claimed-names">
+                                ${item.claimedBy.length ? item.claimedBy.map(id => `<span class="claimed-chip">${getPersonName(id)}</span>`).join('') : '<span class="claimed-chip missing">Unclaimed</span>'}
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <div class="item-price">${formatCurrency(item.price)}</div>
+                            <button class="small-btn" data-action="delete" data-id="${item.id}" title="Remove item">🗑️</button>
+                        </div>
+                    `;
+                    selectors.itemsList.appendChild(card);
+                });
+            }
+
+            function renderPeople() {
+                selectors.peopleList.innerHTML = '';
+                state.people.forEach(person => {
+                    const chip = document.createElement('div');
+                    chip.className = 'person-chip';
+                    if (state.metadata.activePersonId === person.id) {
+                        chip.classList.add('active');
+                    }
+                    chip.dataset.id = person.id;
+                    chip.innerHTML = `
+                        <span>${person.name}</span>
+                        <button class="remove-person" data-action="remove" title="Remove">✕</button>
+                    `;
+                    selectors.peopleList.appendChild(chip);
+                });
+            }
+
+            function renderClaimableItems() {
+                selectors.claimableItems.innerHTML = '';
+                if (!state.items.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'items-empty';
+                    empty.textContent = 'Add some items first, then come back to claim them!';
+                    selectors.claimableItems.appendChild(empty);
+                    return;
+                }
+
+                state.items.forEach(item => {
+                    const claimants = item.claimedBy || [];
+                    const claimedByActive = claimants.includes(state.metadata.activePersonId);
+                    const card = document.createElement('div');
+                    card.className = 'claimable-item';
+                    if (claimedByActive) {
+                        card.classList.add('claimed-by-active');
+                    } else if (!claimants.length) {
+                        card.classList.add('unclaimed');
+                    }
+                    card.dataset.id = item.id;
+                    card.innerHTML = `
+                        <div>
+                            <div class="item-name">${item.name}</div>
+                            <div class="item-meta">
+                                <span class="badge category">${item.category}</span>
+                                <span>${formatCurrency(item.price)}</span>
+                            </div>
+                            <div class="claimed-names">
+                                ${claimants.length ? claimants.map(id => `<span class="claimed-chip">${getPersonName(id)}</span>`).join('') : '<span class="claimed-chip missing">Unclaimed</span>'}
+                            </div>
+                        </div>
+                        <button class="claim-btn ${claimedByActive ? 'claimed' : ''}" data-action="toggle">${claimedByActive ? 'Claimed' : 'Tap to claim'}</button>
+                    `;
+                    selectors.claimableItems.appendChild(card);
+                });
+            }
+
+            function renderClaimSummary() {
+                const activePersonId = state.metadata.activePersonId;
+                if (!activePersonId) {
+                    selectors.claimSummaryBody.innerHTML = '';
+                    selectors.claimSummarySubtitle.textContent = 'Select someone to see their dishes.';
+                    return;
+                }
+                const person = state.people.find(p => p.id === activePersonId);
+                if (!person) {
+                    selectors.claimSummaryBody.innerHTML = '';
+                    selectors.claimSummarySubtitle.textContent = 'Select someone to see their dishes.';
+                    return;
+                }
+                const personItems = state.items.filter(item => (item.claimedBy || []).includes(activePersonId));
+                const total = personItems.reduce((sum, item) => sum + (item.price / (item.claimedBy.length || 1)), 0);
+                selectors.claimSummarySubtitle.textContent = `${person.name} has ${personItems.length} item${personItems.length === 1 ? '' : 's'} (${formatCurrency(total)} so far).`;
+                if (!personItems.length) {
+                    selectors.claimSummaryBody.innerHTML = '<div class="muted">No items claimed yet.</div>';
+                    return;
+                }
+                selectors.claimSummaryBody.innerHTML = personItems.map(item => `
+                    <div class="summary-line">
+                        <span>${item.name}</span>
+                        <span>${formatCurrency(item.price / item.claimedBy.length)}</span>
+                    </div>
+                `).join('');
+            }
+
+            function renderDiscounts() {
+                selectors.discountList.innerHTML = '';
+                const { discounts } = state;
+                selectors.discountsSubtitle.textContent = discounts.length ? `${discounts.length} discount${discounts.length === 1 ? '' : 's'} applied` : 'No discounts yet.';
+                if (!discounts.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'items-empty';
+                    empty.textContent = 'Add your first discount to start saving!';
+                    selectors.discountList.appendChild(empty);
+                    return;
+                }
+
+                discounts.forEach(discount => {
+                    const card = document.createElement('div');
+                    card.className = 'discount-card';
+                    const appliesTo = discount.appliedTo === 'all'
+                        ? 'Everyone'
+                        : discount.appliedTo.map(getPersonName).join(', ');
+                    card.innerHTML = `
+                        <div class="discount-card-header">
+                            <div>
+                                <div class="discount-label">${discount.title}</div>
+                                <div class="muted">${discount.description}</div>
+                                <div class="chip-list" style="margin-top:8px;">
+                                    <span class="chip">Applies to: ${appliesTo}</span>
+                                </div>
+                            </div>
+                            <div class="discount-card-actions">
+                                <button class="btn ghost" data-action="remove-discount" data-id="${discount.id}">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                    selectors.discountList.appendChild(card);
+                });
+            }
+
+            function renderSummary() {
+                const { perPerson, unclaimedItems, itemsTotal, discountsTotal, serviceChargeTotal, grandTotal } = calculateBill();
+                selectors.peopleSummary.innerHTML = '';
+                const entries = Array.from(perPerson.entries());
+                if (!entries.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'items-empty';
+                    empty.textContent = 'Add people and claim items to see the breakdown.';
+                    selectors.peopleSummary.appendChild(empty);
+                } else {
+                    entries.forEach(([personId, info]) => {
+                        const card = document.createElement('div');
+                        card.className = 'person-summary-card';
+                        const discounts = info.discountBreakdown
+                            .map(entry => `<div class="summary-line"><span>${entry.description}</span><span>${formatCurrency(entry.amount)}</span></div>`)
+                            .join('');
+                        card.innerHTML = `
+                            <div class="person-summary-header">
+                                <span class="person-summary-name">${info.name}</span>
+                                <span class="person-summary-total">${formatCurrency(info.total)}</span>
+                            </div>
+                            <div class="summary-breakdown">
+                                <div class="summary-line"><span>Items</span><span>${formatCurrency(info.itemsTotal)}</span></div>
+                                ${info.discountBreakdown.length ? `<div class="summary-line"><span>Discounts</span><span>${formatCurrency(info.discounts)}</span></div>${discounts}` : '<div class="summary-line"><span>Discounts</span><span>£0.00</span></div>'}
+                                <div class="summary-line"><span>Service charge</span><span>${formatCurrency(info.serviceCharge)}</span></div>
+                            </div>
+                        `;
+                        selectors.peopleSummary.appendChild(card);
+                    });
+                }
+
+                selectors.unclaimedSection.innerHTML = '';
+                if (!unclaimedItems.length) {
+                    selectors.unclaimedSection.innerHTML = '<div class="items-empty" style="background:rgba(46,204,113,0.12); color:var(--success);">All items claimed — nice!</div>';
+                } else {
+                    const list = document.createElement('div');
+                    list.className = 'unclaimed-list';
+                    unclaimedItems.forEach(item => {
+                        const row = document.createElement('div');
+                        row.className = 'summary-line';
+                        row.innerHTML = `<span>${item.name}</span><span>${formatCurrency(item.price)}</span>`;
+                        list.appendChild(row);
+                    });
+                    selectors.unclaimedSection.appendChild(list);
+                    const cta = document.createElement('div');
+                    cta.className = 'btn-row';
+                    const btn = document.createElement('button');
+                    btn.className = 'btn primary';
+                    btn.textContent = 'Go back to claim items';
+                    btn.addEventListener('click', () => goToStep(2));
+                    cta.appendChild(btn);
+                    selectors.unclaimedSection.appendChild(cta);
+                }
+
+                selectors.grandTotal.textContent = formatCurrency(grandTotal);
+                const breakdown = [
+                    `Items: ${formatCurrency(itemsTotal)}`,
+                    `Discounts: ${formatCurrency(discountsTotal)}`,
+                    `Service charge: ${formatCurrency(serviceChargeTotal)}`
+                ];
+                selectors.grandTotalBreakdown.textContent = breakdown.join(' · ');
+            }
+
+            function renderServiceChargeInputs() {
+                selectors.serviceChargeInput.value = state.serviceChargePercent;
+                selectors.serviceChargeToggle.checked = state.serviceChargeEnabled;
+                selectors.serviceChargeInput.disabled = !state.serviceChargeEnabled;
+            }
+
+            function renderMenuModalPreset() {
+                selectors.presetChecklist.innerHTML = '';
+                presetMenus.forEach(menu => {
+                    const group = document.createElement('div');
+                    group.className = 'checklist-group';
+                    group.innerHTML = `<div class="checklist-heading">${menu.name}</div>`;
+                    menu.items.forEach(item => {
+                        const inputId = generateId('preset-item');
+                        const row = document.createElement('div');
+                        row.className = 'checklist-item';
+                        row.innerHTML = `
+                            <input type="checkbox" id="${inputId}" data-name="${item.name}" data-price="${item.price}" data-category="${item.category}" />
+                            <label for="${inputId}">${item.name}</label>
+                            <span>${formatCurrency(item.price)}</span>
+                        `;
+                        group.appendChild(row);
+                    });
+                    selectors.presetChecklist.appendChild(group);
+                });
+            }
+
+            function renderMenuChecklist(items) {
+                selectors.menuChecklist.innerHTML = '';
+                const grouped = groupItemsByCategory(items);
+                Object.entries(grouped).forEach(([category, groupItems]) => {
+                    const group = document.createElement('div');
+                    group.className = 'checklist-group';
+                    group.innerHTML = `<div class="checklist-heading">${category}</div>`;
+                    groupItems.forEach(item => {
+                        const inputId = generateId('menu-item');
+                        const row = document.createElement('div');
+                        row.className = 'checklist-item';
+                        row.innerHTML = `
+                            <input type="checkbox" id="${inputId}" data-name="${item.name}" data-price="${item.price}" data-category="${item.category}" />
+                            <label for="${inputId}">${item.name}</label>
+                            <span>${formatCurrency(item.price)}</span>
+                        `;
+                        group.appendChild(row);
+                    });
+                    selectors.menuChecklist.appendChild(group);
+                });
+            }
+
+            function renderParsedChecklist(items) {
+                selectors.parsedChecklist.innerHTML = '';
+                if (!items.length) {
+                    selectors.parsedChecklist.classList.add('hidden');
+                    selectors.parsedAddRow.style.display = 'none';
+                    return;
+                }
+                const grouped = groupItemsByCategory(items);
+                Object.entries(grouped).forEach(([category, groupItems]) => {
+                    const group = document.createElement('div');
+                    group.className = 'checklist-group';
+                    group.innerHTML = `<div class="checklist-heading">${category}</div>`;
+                    groupItems.forEach(item => {
+                        const inputId = generateId('parsed-item');
+                        const row = document.createElement('div');
+                        row.className = 'checklist-item';
+                        row.innerHTML = `
+                            <input type="checkbox" id="${inputId}" data-name="${item.name}" data-price="${item.price}" data-category="${item.category}" checked />
+                            <label for="${inputId}">${item.name}</label>
+                            <span>${formatCurrency(item.price)}</span>
+                        `;
+                        group.appendChild(row);
+                    });
+                    selectors.parsedChecklist.appendChild(group);
+                });
+                selectors.parsedChecklist.classList.remove('hidden');
+                selectors.parsedAddRow.style.display = 'flex';
+            }
+
+            function render() {
+                renderProgress();
+                renderScreens();
+                renderItemsScreen();
+                renderPeople();
+                renderClaimableItems();
+                renderClaimSummary();
+                renderDiscounts();
+                renderSummary();
+                renderServiceChargeInputs();
+            }
+
+            function goToStep(step) {
+                setState({ currentStep: step });
+            }
+
+            function addItem(payload) {
+                const item = {
+                    id: generateId('item'),
+                    name: payload.name.trim(),
+                    price: Number(payload.price),
+                    category: payload.category,
+                    claimedBy: []
+                };
+                const items = [...state.items, item];
+                setState({ items });
+                showToast(`${item.name} added to the bill.`);
+            }
+
+            function addItemsBatch(items) {
+                const prepared = items.map(item => ({
+                    id: generateId('item'),
+                    name: item.name,
+                    price: Number(item.price),
+                    category: item.category || detectCategory(item.name),
+                    claimedBy: []
+                }));
+                setState({ items: [...state.items, ...prepared] });
+                showToast(`${prepared.length} item${prepared.length === 1 ? '' : 's'} added.`);
+            }
+
+            function removeItem(itemId) {
+                setState({ items: state.items.filter(item => item.id !== itemId) });
+            }
+
+            function clearItems() {
+                setState({ items: [], discounts: [] });
+            }
+
+            function addPerson(name) {
+                const trimmed = name.trim();
+                if (!trimmed) return;
+                if (state.people.some(person => person.name.toLowerCase() === trimmed.toLowerCase())) {
+                    showToast('That name is already in the list.', { duration: 2600 });
+                    return;
+                }
+                const person = { id: generateId('person'), name: trimmed };
+                setState({
+                    people: [...state.people, person],
+                    metadata: { ...state.metadata, activePersonId: person.id }
+                });
+                showToast(`${trimmed} joined the table.`);
+            }
+
+            function removePerson(personId) {
+                const updatedItems = state.items.map(item => ({
+                    ...item,
+                    claimedBy: (item.claimedBy || []).filter(id => id !== personId)
+                }));
+                const updatedPeople = state.people.filter(person => person.id !== personId);
+                const activePersonId = state.metadata.activePersonId === personId ? null : state.metadata.activePersonId;
+                setState({ items: updatedItems, people: updatedPeople, metadata: { ...state.metadata, activePersonId } });
+            }
+
+            function toggleClaim(itemId, personId) {
+                const items = state.items.map(item => {
+                    if (item.id !== itemId) return item;
+                    const claimed = new Set(item.claimedBy || []);
+                    if (claimed.has(personId)) {
+                        claimed.delete(personId);
+                    } else {
+                        claimed.add(personId);
+                    }
+                    return { ...item, claimedBy: Array.from(claimed) };
+                });
+                setState({ items });
+            }
+
+            function addDiscount(discount) {
+                setState({ discounts: [...state.discounts, discount] });
+                showToast(`${discount.title} added.`);
+            }
+
+            function removeDiscount(discountId) {
+                setState({ discounts: state.discounts.filter(discount => discount.id !== discountId) });
+            }
+
+            function resetAll() {
+                setState(deepClone(initialState));
+                showToast('Start fresh — everything cleared.');
+            }
+
+            function parsePastedMenu(text) {
+                const lines = text.split(/\n|\r/).map(line => line.trim()).filter(Boolean);
+                const items = [];
+                const pattern = /(.+)£(\d+(?:\.\d+)?)/i;
+                lines.forEach(line => {
+                    const match = line.match(pattern);
+                    if (!match) return;
+                    const name = match[1].trim();
+                    const price = parseFloat(match[2]);
+                    if (!Number.isFinite(price) || price <= 0) return;
+                    items.push({ name, price, category: detectCategory(name) });
+                });
+                return items;
+            }
+
+            function getSelectedChecklistItems(container) {
+                const inputs = container.querySelectorAll('input[type="checkbox"]:checked');
+                return Array.from(inputs).map(input => ({
+                    name: input.dataset.name,
+                    price: Number(input.dataset.price),
+                    category: input.dataset.category || detectCategory(input.dataset.name)
+                }));
+            }
+
+            function fetchMenu(url) {
+                selectors.fetchStatus.classList.remove('hidden');
+                selectors.fetchStatus.innerHTML = '<span class="loading-dot"></span><span>Fetching menu...</span>';
+                selectors.menuChecklist.classList.add('hidden');
+                selectors.menuAddRow.style.display = 'none';
+
+                return fetch('https://bill-splitter-server-production.up.railway.app/fetch-menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Failed to fetch menu');
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (!data.success) throw new Error(data.error || 'Menu fetch failed');
+                        if (!data.items || !data.items.length) throw new Error('No menu items found at that URL.');
+                        const cleaned = data.items.map(item => ({
+                            ...item,
+                            category: item.category || detectCategory(item.name)
+                        }));
+                        setState({ metadata: { ...state.metadata, lastMenuItems: cleaned } });
+                        renderMenuChecklist(cleaned);
+                        selectors.menuChecklist.classList.remove('hidden');
+                        selectors.menuAddRow.style.display = 'flex';
+                        selectors.fetchStatus.innerHTML = `<span class="muted">Fetched ${data.items.length} item${data.items.length === 1 ? '' : 's'}. Tick what you want to add.</span>`;
+                    })
+                    .catch(error => {
+                        console.error(error);
+                        selectors.fetchStatus.innerHTML = `<span class="muted" style="color:var(--danger);">${error.message}</span>`;
+                    });
+            }
+
+            function buildDiscountConfig(type) {
+                const container = selectors.discountConfig;
+                container.innerHTML = '';
+                const appliedToOptions = state.people.length ? state.people.map(person => `
+                    <span class="pill selected" data-id="${person.id}">${person.name}</span>
+                `).join('') : '<div class="muted">Add people first to target discounts.</div>';
+
+                if (!state.people.length) {
+                    container.innerHTML = '<div class="muted">Add at least one person to apply discounts.</div>';
+                    return;
+                }
+
+                if (type === 'percent') {
+                    container.innerHTML = `
+                        <div class="form-field">
+                            <label>Percentage off</label>
+                            <input type="number" id="discount-percent" min="1" max="100" step="1" placeholder="Enter percent e.g. 25" />
+                        </div>
+                        <div class="form-field">
+                            <label>Who benefits?</label>
+                            <div class="pill-select" data-select="people">${appliedToOptions}</div>
+                        </div>
+                        <div class="form-field">
+                            <label>Description</label>
+                            <input type="text" id="discount-description" placeholder="e.g. Happy hour 25% off" />
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn primary" id="btn-save-discount">Add percentage discount</button>
+                        </div>
+                    `;
+                } else if (type === 'twoForOne') {
+                    const itemsOptions = state.items.length ? state.items.map(item => {
+                        const inputId = `deal-${item.id}`;
+                        return `
+                            <div class="checklist-item">
+                                <input type="checkbox" id="${inputId}" data-item="${item.id}" />
+                                <label for="${inputId}">${item.name}</label>
+                                <span>${formatCurrency(item.price)}</span>
+                            </div>
+                        `;
+                    }).join('') : '<div class="muted">Add items first to apply a deal.</div>';
+                    container.innerHTML = `
+                        <div class="form-field">
+                            <label>Select dishes that qualify (pick at least 2)</label>
+                            <div class="checklist" style="max-height:220px;">${itemsOptions}</div>
+                        </div>
+                        <div class="form-field">
+                            <label>Who should get the savings?</label>
+                            <div class="pill-select" data-select="people">${appliedToOptions}</div>
+                        </div>
+                        <div class="form-field">
+                            <label>Description</label>
+                            <input type="text" id="discount-description" placeholder="e.g. 2-for-1 mains" />
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn primary" id="btn-save-discount">Add 2-for-1 deal</button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="form-field">
+                            <label>Discount amount (£)</label>
+                            <input type="number" id="discount-amount" min="1" step="0.5" placeholder="e.g. 10" />
+                        </div>
+                        <div class="form-field">
+                            <label>Who benefits?</label>
+                            <div class="pill-select" data-select="people">${appliedToOptions}</div>
+                        </div>
+                        <div class="form-field">
+                            <label>Description</label>
+                            <input type="text" id="discount-description" placeholder="e.g. £10 off with voucher" />
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn primary" id="btn-save-discount">Add custom discount</button>
+                        </div>
+                    `;
+                }
+            }
+
+            function initMenuModal() {
+                renderMenuModalPreset();
+                selectors.btnImportMenu.addEventListener('click', () => openMenuModal('url'));
+                selectors.btnShowPreset.addEventListener('click', () => openMenuModal('preset'));
+                selectors.menuModalClose.addEventListener('click', closeMenuModal);
+                selectors.menuModal.addEventListener('click', (event) => {
+                    if (event.target === selectors.menuModal) closeMenuModal();
+                });
+
+                selectors.menuTabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        openMenuModal(tab.dataset.tab);
+                    });
+                });
+
+                selectors.btnFetchMenu.addEventListener('click', () => {
+                    const url = selectors.menuUrlInput.value.trim();
+                    if (!url) {
+                        showToast('Enter a menu URL first.', { duration: 2400 });
+                        return;
+                    }
+                    fetchMenu(url);
+                });
+
+                selectors.btnAddSelected.addEventListener('click', () => {
+                    const items = getSelectedChecklistItems(selectors.menuChecklist);
+                    if (!items.length) {
+                        showToast('Select at least one dish to add.', { duration: 2400 });
+                        return;
+                    }
+                    addItemsBatch(items);
+                    closeMenuModal();
+                });
+
+                selectors.btnAddPreset.addEventListener('click', () => {
+                    const items = getSelectedChecklistItems(selectors.presetChecklist);
+                    if (!items.length) {
+                        showToast('Pick some preset dishes first.', { duration: 2400 });
+                        return;
+                    }
+                    addItemsBatch(items);
+                    closeMenuModal();
+                });
+
+                selectors.btnParseText.addEventListener('click', () => {
+                    const items = parsePastedMenu(selectors.menuTextInput.value);
+                    if (!items.length) {
+                        showToast('No items detected. Use the format “Item £Price”.', { duration: 2800 });
+                        selectors.parsedChecklist.classList.add('hidden');
+                        selectors.parsedAddRow.style.display = 'none';
+                        return;
+                    }
+                    renderParsedChecklist(items);
+                    selectors.parsedChecklist.dataset.items = JSON.stringify(items);
+                });
+
+                selectors.btnAddParsed.addEventListener('click', () => {
+                    const items = getSelectedChecklistItems(selectors.parsedChecklist);
+                    if (!items.length) {
+                        showToast('Select at least one parsed dish.', { duration: 2400 });
+                        return;
+                    }
+                    addItemsBatch(items);
+                    closeMenuModal();
+                });
+            }
+
+            function openMenuModal(tab) {
+                selectors.menuModal.classList.add('open');
+                selectors.menuTabs.forEach(button => {
+                    button.classList.toggle('active', button.dataset.tab === tab);
+                });
+                selectors.menuSections.forEach(section => {
+                    section.classList.toggle('active', section.dataset.content === tab);
+                });
+                if (tab === 'url' && state.metadata.lastMenuItems.length) {
+                    renderMenuChecklist(state.metadata.lastMenuItems);
+                    selectors.menuChecklist.classList.remove('hidden');
+                    selectors.menuAddRow.style.display = 'flex';
+                }
+            }
+
+            function closeMenuModal() {
+                selectors.menuModal.classList.remove('open');
+            }
+
+            function handleManualAdd(event) {
+                event.preventDefault();
+                const formData = new FormData(event.target);
+                const name = formData.get('itemName');
+                const price = parseFloat(formData.get('itemPrice'));
+                const categorySelection = formData.get('itemCategory');
+                if (!name || !Number.isFinite(price) || price <= 0) {
+                    showToast('Enter a valid name and price.');
+                    return;
+                }
+                const category = categorySelection === 'auto' ? detectCategory(name) : categorySelection;
+                addItem({ name, price, category });
+                event.target.reset();
+                document.getElementById('item-name').focus();
+            }
+
+            function handleItemsListClick(event) {
+                const button = event.target.closest('button[data-action="delete"]');
+                if (!button) return;
+                const id = button.dataset.id;
+                showDialog({
+                    title: 'Remove item?',
+                    message: 'This will delete the item from your bill.',
+                    confirmText: 'Remove',
+                    tone: 'danger'
+                }).then(confirmed => {
+                    if (confirmed) removeItem(id);
+                });
+            }
+
+            function handleClearItems() {
+                showDialog({
+                    title: 'Clear all items?',
+                    message: 'This will remove every item, discount, and claim. Are you sure?',
+                    confirmText: 'Clear everything',
+                    tone: 'danger'
+                }).then(confirmed => {
+                    if (confirmed) clearItems();
+                });
+            }
+
+            function handleAddPerson(event) {
+                event.preventDefault();
+                const name = new FormData(event.target).get('personName');
+                addPerson(name);
+                event.target.reset();
+            }
+
+            function handlePeopleClick(event) {
+                const removeBtn = event.target.closest('[data-action="remove"]');
+                if (removeBtn) {
+                    const parentChip = removeBtn.closest('.person-chip');
+                    const personId = parentChip.dataset.id;
+                    showDialog({
+                        title: 'Remove person?',
+                        message: 'Their claimed dishes will become unclaimed.',
+                        confirmText: 'Remove',
+                        tone: 'danger'
+                    }).then(confirmed => {
+                        if (confirmed) removePerson(personId);
+                    });
+                    return;
+                }
+                const chip = event.target.closest('.person-chip');
+                if (!chip) return;
+                const personId = chip.dataset.id;
+                setState({ metadata: { ...state.metadata, activePersonId: personId } });
+            }
+
+            function handleClaimableClick(event) {
+                const button = event.target.closest('[data-action="toggle"]');
+                if (!button) return;
+                const card = button.closest('.claimable-item');
+                const itemId = card.dataset.id;
+                const activePersonId = state.metadata.activePersonId;
+                if (!activePersonId) {
+                    showToast('Select a person first.');
+                    return;
+                }
+                toggleClaim(itemId, activePersonId);
+            }
+
+            function handleStepNavigation(targetStep) {
+                if (targetStep === 2 && !state.items.length) {
+                    showToast('Add at least one item before claiming.');
+                    return;
+                }
+                if (targetStep === 3 && (!state.people.length || state.items.every(item => !(item.claimedBy || []).length))) {
+                    showToast('Make sure items are claimed before applying discounts.');
+                    return;
+                }
+                goToStep(targetStep);
+            }
+
+            function handleDiscountTypeSelection(event) {
+                const typeCard = event.target.closest('.discount-type');
+                if (!typeCard) return;
+                selectors.discountForm.querySelectorAll('.discount-type').forEach(card => card.classList.remove('active'));
+                typeCard.classList.add('active');
+                buildDiscountConfig(typeCard.dataset.type);
+            }
+
+            function getSelectedPeople(container) {
+                return Array.from(container.querySelectorAll('.pill.selected')).map(pill => pill.dataset.id);
+            }
+
+            function togglePillSelection(event) {
+                if (!event.target.classList.contains('pill')) return;
+                event.target.classList.toggle('selected');
+            }
+
+            function handleSaveDiscount(event) {
+                if (event.target.id !== 'btn-save-discount') return;
+                const activeType = selectors.discountForm.querySelector('.discount-type.active');
+                if (!activeType) {
+                    showToast('Select a discount type first.');
+                    return;
+                }
+                const type = activeType.dataset.type;
+                const peopleContainer = selectors.discountConfig.querySelector('[data-select="people"]');
+                const selectedPeople = getSelectedPeople(peopleContainer);
+                const appliedTo = selectedPeople.length === state.people.length ? 'all' : selectedPeople;
+                if (selectedPeople.length === 0) {
+                    showToast('Select who should benefit.');
+                    return;
+                }
+
+                if (type === 'percent') {
+                    const percentInput = document.getElementById('discount-percent');
+                    const percent = Number(percentInput.value);
+                    if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+                        showToast('Enter a valid percentage between 1 and 100.');
+                        return;
+                    }
+                    const description = document.getElementById('discount-description').value.trim() || `${percent}% off`;
+                    addDiscount({
+                        id: generateId('discount'),
+                        type: 'percent',
+                        title: `${percent}% off`,
+                        description,
+                        appliedTo,
+                        meta: { percent }
+                    });
+                } else if (type === 'twoForOne') {
+                    const itemInputs = selectors.discountConfig.querySelectorAll('[data-item]');
+                    const selectedItems = Array.from(itemInputs).filter(input => input.checked).map(input => input.dataset.item);
+                    if (selectedItems.length < 2) {
+                        showToast('Select at least two items for the deal.');
+                        return;
+                    }
+                    const description = document.getElementById('discount-description').value.trim() || '2-for-1 deal';
+                    addDiscount({
+                        id: generateId('discount'),
+                        type: 'twoForOne',
+                        title: '2-for-1 savings',
+                        description,
+                        appliedTo,
+                        meta: { itemIds: selectedItems }
+                    });
+                } else {
+                    const amountInput = document.getElementById('discount-amount');
+                    const amount = Number(amountInput.value);
+                    if (!Number.isFinite(amount) || amount <= 0) {
+                        showToast('Enter a positive amount.');
+                        return;
+                    }
+                    const description = document.getElementById('discount-description').value.trim() || `£${amount.toFixed(2)} off`;
+                    addDiscount({
+                        id: generateId('discount'),
+                        type: 'custom',
+                        title: `£${amount.toFixed(2)} off`,
+                        description,
+                        appliedTo,
+                        meta: { amount }
+                    });
+                }
+                selectors.discountConfig.innerHTML = '';
+                selectors.discountForm.querySelectorAll('.discount-type').forEach(card => card.classList.remove('active'));
+            }
+
+            function handleDiscountListClick(event) {
+                const button = event.target.closest('button[data-action="remove-discount"]');
+                if (!button) return;
+                const discountId = button.dataset.id;
+                showDialog({
+                    title: 'Remove discount?',
+                    message: 'This discount will no longer be applied.',
+                    confirmText: 'Remove',
+                    tone: 'danger'
+                }).then(confirmed => {
+                    if (confirmed) removeDiscount(discountId);
+                });
+            }
+
+            function handleServiceChargeToggle(event) {
+                const enabled = event.target.checked;
+                setState({ serviceChargeEnabled: enabled });
+            }
+
+            function handleServiceChargeInput(event) {
+                const value = Number(event.target.value);
+                if (!Number.isFinite(value) || value < 0) {
+                    showToast('Enter a valid service charge percentage.');
+                    return;
+                }
+                setState({ serviceChargePercent: Math.min(value, 40) });
+            }
+
+            function attachEventListeners() {
+                selectors.manualAddForm.addEventListener('submit', handleManualAdd);
+                selectors.itemsList.addEventListener('click', handleItemsListClick);
+                selectors.btnClearItems.addEventListener('click', handleClearItems);
+                selectors.btnToClaims.addEventListener('click', () => handleStepNavigation(2));
+                selectors.btnBackToItems.addEventListener('click', () => goToStep(1));
+                selectors.btnToDiscounts.addEventListener('click', () => handleStepNavigation(3));
+                selectors.btnBackToClaims.addEventListener('click', () => goToStep(2));
+                selectors.btnToSummary.addEventListener('click', () => handleStepNavigation(4));
+                selectors.btnBackToDiscounts.addEventListener('click', () => goToStep(3));
+                selectors.btnReset.addEventListener('click', () => {
+                    showDialog({
+                        title: 'Start over?',
+                        message: 'This clears everything so you can begin a new bill.',
+                        confirmText: 'Reset all',
+                        tone: 'danger'
+                    }).then(confirmed => {
+                        if (confirmed) resetAll();
+                    });
+                });
+
+                selectors.addPersonForm.addEventListener('submit', handleAddPerson);
+                selectors.peopleList.addEventListener('click', handlePeopleClick);
+                selectors.claimableItems.addEventListener('click', handleClaimableClick);
+
+                selectors.discountForm.addEventListener('click', handleDiscountTypeSelection);
+                selectors.discountConfig.addEventListener('click', togglePillSelection);
+                selectors.discountConfig.addEventListener('click', handleSaveDiscount);
+                selectors.discountList.addEventListener('click', handleDiscountListClick);
+
+                selectors.serviceChargeToggle.addEventListener('change', handleServiceChargeToggle);
+                selectors.serviceChargeInput.addEventListener('input', handleServiceChargeInput);
+            }
+
+            function init() {
+                attachEventListeners();
+                initMenuModal();
+                render();
+            }
+
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>
