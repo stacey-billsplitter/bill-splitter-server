@@ -1,0 +1,21 @@
+{
+  "name": "bill-splitter-server",
+  "version": "1.0.0",
+  "description": "Server to fetch restaurant menus for bill splitting app",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["bill-splitter", "menu-fetcher", "restaurant"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5"
+  }
+}
